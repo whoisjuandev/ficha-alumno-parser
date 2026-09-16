@@ -1,0 +1,9 @@
+# Dependencies and build output
+node_modules/
+dist/
+
+# Local files
+.DS_Store
+
+# Local Pi runtime state
+.atl/
