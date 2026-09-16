@@ -20,20 +20,98 @@ import {
 } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { createDownloadFilename, parseStudentName } from "@/lib/parser";
+import {
+  createDownloadFilename,
+  parseStudentRecord,
+  type StudentData,
+} from "@/lib/parser";
 
 const TEMPLATE_PATH = "/Ficha_Alumno_TEMPLATE.xlsx";
+
+function joinValues(...values: Array<string | null>) {
+  const presentValues = values.filter((value): value is string =>
+    Boolean(value),
+  );
+  return presentValues.length > 0 ? presentValues.join(" / ") : null;
+}
+
+function writeRecordToWorksheet(
+  worksheet: ExcelJS.Worksheet,
+  record: StudentData,
+) {
+  const values: Record<string, string | null> = {
+    B4: record.name,
+    B5: record.username,
+    D5: record.email,
+    B6: record.document,
+    D6: record.cuil,
+    B7: record.birthProvince,
+    D7: record.birthLocality,
+    B8: record.birthDate,
+    D8: record.nationality,
+    B9: record.access,
+    D9: record.account,
+    B12: record.address,
+    B13: record.locality,
+    D13: record.postalCode,
+    B14: record.homePhone,
+    D14: record.mobilePhone,
+    B17: record.enrollment,
+    D17: record.withRecord,
+    B18: joinValues(record.bookMatrix, record.folio),
+    D18: record.lastRegeneration,
+    B19: record.grade,
+    B21: record.withdrawal1Name,
+    D21: joinValues(record.withdrawal1Dni, record.withdrawal1Relationship),
+    B22: record.withdrawal2Name,
+    D22: joinValues(record.withdrawal2Dni, record.withdrawal2Relationship),
+    B25: record.emergency1Contact,
+    B26: joinValues(record.emergency1Phone, record.emergency1Relationship),
+    B27: record.emergency2Contact,
+    B28: joinValues(record.emergency2Phone, record.emergency2Relationship),
+    B31: record.healthInsurance,
+    D31: record.bloodType,
+    B32: record.allergies,
+    D32: record.assistance,
+    B33: record.personalImage,
+    D33: record.trips,
+    B34: record.medicalAttention,
+    D34: record.psychologist,
+    B37: record.twoFactor,
+    D37: record.role,
+    B38: record.lastLogin,
+    D38: record.digitalSignature,
+    B39: record.floor,
+    D39: record.apartment,
+    B40: record.tower,
+    D40: record.studentRecord,
+    B41: record.bookMatrix,
+    D41: record.folio,
+    B42: record.behavior,
+    D42: record.previousSchool,
+    B43: record.tutor,
+    B44: record.taxTreatment,
+    B45: record.cuit,
+    B48: record.preEnrollment,
+    B49: record.admission,
+    B50: record.previousSchoolRecord,
+  };
+
+  for (const [cell, value] of Object.entries(values)) {
+    worksheet.getCell(cell).value = value;
+  }
+}
 
 export default function App() {
   const [text, setText] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
-  const parsedName = parseStudentName(text);
-  const isValid = parsedName.status === "valid";
-  const hasParseError = parsedName.status !== "empty" && !isValid;
+  const parsedRecord = parseStudentRecord(text);
+  const isValid = parsedRecord.status === "valid";
+  const hasParseError = parsedRecord.status !== "empty" && !isValid;
 
   async function handleDownload() {
-    if (!isValid) {
+    if (parsedRecord.status !== "valid") {
       return;
     }
 
@@ -55,7 +133,7 @@ export default function App() {
         throw new Error("La plantilla no contiene una hoja de trabajo.");
       }
 
-      worksheet.getCell("B4").value = parsedName.name;
+      writeRecordToWorksheet(worksheet, parsedRecord.record);
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer as BlobPart], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -63,7 +141,7 @@ export default function App() {
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = objectUrl;
-      link.download = createDownloadFilename(parsedName.name);
+      link.download = createDownloadFilename(parsedRecord.name);
       link.click();
       URL.revokeObjectURL(objectUrl);
     } catch {
@@ -95,9 +173,9 @@ export default function App() {
               Prepará la ficha en segundos.
             </h1>
             <p className="max-w-xl text-base leading-7 text-muted-foreground">
-              Pegá el texto de tu registro y detectamos el nombre completo para
-              completar la plantilla de Excel. Todo se procesa en este
-              navegador.
+              Pegá el texto de tu registro y detectamos el nombre completo y el
+              grado para completar la plantilla de Excel. Todo se procesa en
+              este navegador.
             </p>
           </div>
         </header>
@@ -106,8 +184,8 @@ export default function App() {
           <CardHeader>
             <CardTitle>Texto del registro</CardTitle>
             <CardDescription>
-              Por ahora usamos únicamente el valor que aparece debajo de «Nombre
-              completo».
+              Detectamos todos los campos disponibles desde el texto pegado para
+              completar la plantilla de Excel.
             </CardDescription>
           </CardHeader>
 
@@ -126,8 +204,8 @@ export default function App() {
                   className="h-96 max-h-96 resize-none overflow-y-auto"
                 />
                 <FieldDescription>
-                  La etiqueta puede tener dos puntos y cualquier combinación de
-                  mayúsculas o tildes.
+                  Se completan todos los campos reconocidos; el nombre y el
+                  grado son obligatorios para descargar la ficha.
                 </FieldDescription>
               </Field>
             </FieldGroup>
@@ -144,26 +222,41 @@ export default function App() {
               </div>
 
               {isValid ? (
-                <div className="flex items-start gap-3">
-                  <Check aria-hidden="true" className="mt-0.5 text-primary" />
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <p className="text-sm text-muted-foreground">
-                      Nombre detectado
-                    </p>
-                    <p className="break-words text-lg font-medium">
-                      {parsedName.name}
-                    </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex items-start gap-3">
+                    <Check aria-hidden="true" className="mt-0.5 text-primary" />
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <p className="text-sm text-muted-foreground">
+                        Nombre detectado
+                      </p>
+                      <p className="break-words text-lg font-medium">
+                        {parsedRecord.name}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Check aria-hidden="true" className="mt-0.5 text-primary" />
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <p className="text-sm text-muted-foreground">
+                        Grado detectado
+                      </p>
+                      <p className="break-words text-lg font-medium">
+                        {parsedRecord.grade}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <Alert variant={hasParseError ? "destructive" : "default"}>
                   {hasParseError && <AlertCircle aria-hidden="true" />}
                   <AlertTitle>
-                    {parsedName.status === "empty"
+                    {parsedRecord.status === "empty"
                       ? "Esperando el texto"
-                      : "No hay un nombre válido todavía"}
+                      : parsedRecord.status === "missing-grade"
+                        ? "Falta el grado"
+                        : "No hay datos válidos todavía"}
                   </AlertTitle>
-                  <AlertDescription>{parsedName.message}</AlertDescription>
+                  <AlertDescription>{parsedRecord.message}</AlertDescription>
                 </Alert>
               )}
             </section>
@@ -179,7 +272,7 @@ export default function App() {
 
           <CardFooter className="flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
-              Se completa la celda B4 de la hoja FICHA.
+              Se completan todos los campos reconocidos de la hoja FICHA.
             </p>
             <Button
               type="button"
