@@ -323,8 +323,8 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-svh bg-background px-6 py-8 text-foreground sm:px-8 lg:px-12">
-      <div className="mx-auto flex min-h-[calc(100svh-4rem)] max-w-[1600px] flex-col gap-8">
+    <main className="min-h-svh bg-background px-6 py-8 text-foreground sm:px-8 lg:h-svh lg:overflow-hidden lg:px-12">
+      <div className="mx-auto flex min-h-[calc(100svh-4rem)] max-w-[1600px] flex-col gap-8 lg:h-[calc(100svh-4rem)] lg:min-h-0">
         <header className="flex flex-wrap items-end justify-between gap-4 border-b pb-6">
           <div className="flex flex-col gap-3">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -423,7 +423,7 @@ export default function App() {
               </p>
             </div>
 
-                <div className="max-h-[70vh] overflow-y-auto px-1 pt-1 pb-6">
+                <div className="scroll-fade-y scroll-fade-24 min-h-0 flex-1 overflow-y-auto px-1 pt-1 pb-6">
                   {editedRecord ? (
                     <div className="flex flex-col gap-6">
                       {previewSections.map((section) => (
@@ -464,7 +464,7 @@ export default function App() {
           </section>
         </div>
 
-        <footer className="flex flex-col gap-4 border-t pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <footer className="sticky bottom-0 z-10 flex shrink-0 flex-col gap-4 border-t bg-background pt-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
             <p className="text-sm font-medium">Campos detectados</p>
             <p className="text-sm text-muted-foreground">
