@@ -356,7 +356,10 @@ export default function App() {
             </div>
 
             <FieldGroup className="min-h-0 flex-1">
-              <Field data-invalid={hasParseError || undefined}>
+                  <Field
+                    className="min-h-0 flex-1"
+                    data-invalid={hasParseError || undefined}
+                  >
                 <FieldLabel htmlFor="student-record">
                   Pegá el contenido de la ficha
                 </FieldLabel>
@@ -368,7 +371,7 @@ export default function App() {
                     "Perfil de Nombre Apellido de 6º Grado\n...\n\nNombre completo\nNombre Apellido"
                   }
                   aria-invalid={hasParseError || undefined}
-                  className="h-[min(60svh,620px)] max-h-[620px] resize-none overflow-y-auto"
+                  className="h-[min(60svh,620px)] max-h-[620px] min-h-0 resize-none overflow-y-auto lg:h-auto lg:max-h-none lg:flex-1"
                 />
                 <FieldDescription>
                   Se procesa todo localmente en este navegador.
@@ -376,7 +379,7 @@ export default function App() {
               </Field>
             </FieldGroup>
 
-            <div aria-live="polite" className="border-t pt-4">
+            <div aria-live="polite" className="shrink-0 border-t pt-4">
               {parsedRecord.status === "empty" ? (
                 <p className="text-sm text-muted-foreground">
                   Pegá un registro para cargar la ficha editable.
